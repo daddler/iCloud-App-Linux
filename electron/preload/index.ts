@@ -46,6 +46,7 @@ const bridge: IcloudBridge = {
     },
   },
   photos: {
+    listAlbums: () => ipcRenderer.invoke('photos:listAlbums') as Promise<string[]>,
     listAlbum: (album) => ipcRenderer.invoke('photos:listAlbum', album) as Promise<PhotoAsset[]>,
     download: (paths, destDir) =>
       ipcRenderer.invoke('photos:download', paths, destDir) as Promise<StartTransferResult>,

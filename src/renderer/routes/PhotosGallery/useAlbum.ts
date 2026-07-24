@@ -1,9 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
 import type { PhotoAsset } from '@shared/ipc-types';
 
-export function useAlbum(album: string) {
+export function useAlbum(album: string | null) {
   return useQuery<PhotoAsset[]>({
     queryKey: ['album', album],
-    queryFn: () => window.icloud.photos.listAlbum(album),
+    queryFn: () => window.icloud.photos.listAlbum(album as string),
+    enabled: album !== null,
   });
 }

@@ -1,13 +1,20 @@
 import { useEffect, useState } from 'react';
-import type { AppView } from '@shared/ipc-types';
+import type { AppView, AuthStatus } from '@shared/ipc-types';
 import { Onboarding } from './routes/Onboarding/Onboarding';
 import { DriveExplorer } from './routes/DriveExplorer/DriveExplorer';
 import { PhotosGallery } from './routes/PhotosGallery/PhotosGallery';
 import { Settings } from './routes/Settings/Settings';
 import { Spinner } from './components/Spinner';
 
+/** Derives 2-letter initials from the visible part of a masked Apple ID (e.g. "fa***@icloud.com" -> "FA"). */
+function getUserInitials(appleIdMasked?: string): string | undefined {
+  const local = appleIdMasked?.split('@')[0]?.replace(/\*/g, '');
+  return local ? local.slice(0, 2).toUpperCase() : undefined;
+}
+
 export default function App() {
   const [view, setView] = useState<AppView | 'loading'>('loading');
+  const [authStatus, setAuthStatus] = useState<AuthStatus | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -15,6 +22,7 @@ export default function App() {
       .status()
       .then((status) => {
         if (cancelled) return;
+        setAuthStatus(status);
         setView(status.isAuthenticated ? 'drive' : 'onboarding');
       })
       .catch(() => setView('onboarding'));
@@ -41,7 +49,13 @@ export default function App() {
         <NavButton label="Drive" active={view === 'drive'} onClick={() => setView('drive')} />
         <NavButton label="Fotos" active={view === 'photos'} onClick={() => setView('photos')} />
         <div className="flex-1" />
-        <NavButton label="Einstellungen" active={view === 'settings'} onClick={() => setView('settings')} />
+        <NavButton
+          label="Einstellungen"
+          active={view === 'settings'}
+          onClick={() => setView('settings')}
+          content={getUserInitials(authStatus?.appleIdMasked)}
+          rounded
+        />
       </nav>
       <main className="flex-1 overflow-hidden">
         {view === 'drive' && <DriveExplorer />}
@@ -52,19 +66,33 @@ export default function App() {
   );
 }
 
-function NavButton({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+function NavButton({
+  label,
+  active,
+  onClick,
+  content,
+  rounded,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+  content?: string;
+  rounded?: boolean;
+}) {
   return (
     <button
       type="button"
       onClick={onClick}
       title={label}
-      className={`flex h-10 w-10 items-center justify-center rounded-lg text-xs font-medium transition-colors ${
+      className={`flex h-10 w-10 items-center justify-center text-xs font-medium transition-colors ${
+        rounded ? 'rounded-full' : 'rounded-lg'
+      } ${
         active
           ? 'bg-blue-600 text-white'
           : 'text-neutral-500 hover:bg-neutral-200 dark:text-neutral-400 dark:hover:bg-neutral-800'
       }`}
     >
-      {label.slice(0, 2)}
+      {content ?? label.slice(0, 2)}
     </button>
   );
 }

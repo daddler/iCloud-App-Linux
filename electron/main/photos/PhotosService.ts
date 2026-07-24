@@ -12,6 +12,15 @@ import type { PhotoAsset } from '@shared/ipc-types';
 export class PhotosService {
   constructor(private readonly photosMountRoot: string) {}
 
+  /** Lists the albums actually present under the Photos mount, rather than assuming fixed names. */
+  async listAlbums(): Promise<string[]> {
+    const entries = await fs.readdir(this.photosMountRoot, { withFileTypes: true });
+    return entries
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => entry.name)
+      .sort();
+  }
+
   async listAlbum(album: string): Promise<PhotoAsset[]> {
     const albumDir = join(this.photosMountRoot, album);
     const entries = await fs.readdir(albumDir, { withFileTypes: true });
