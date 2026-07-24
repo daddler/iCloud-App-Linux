@@ -74,7 +74,12 @@ export class AuthService {
         // The original apple_id/password must be resent on every continuation
         // round-trip - rclone's rc config state does not persist them itself.
         parameters: this.pendingParameters,
-        opt: { nonInteractive: true, state: this.pendingState, result: code },
+        // `continue: true` is required here, distinct from state/result: without
+        // it, rclone's config/create handler treats this as a brand new create
+        // and deletes the remote's in-progress config section (including the
+        // backend's saved 2FA session) before ever looking at `state`, failing
+        // with "auth session state lost, please reconfigure".
+        opt: { nonInteractive: true, continue: true, state: this.pendingState, result: code },
       });
 
       if (result.Error) {
