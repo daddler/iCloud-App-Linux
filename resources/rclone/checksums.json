@@ -1,0 +1,14 @@
+{
+  "_comment": "Pinned rclone release used for the bundled binary. Update deliberately, not automatically, and re-verify the M1 2FA continuation spike (see plan docs) against any new version before bumping.",
+  "version": "1.69.0",
+  "artifacts": {
+    "x86_64": {
+      "url": "https://downloads.rclone.org/v1.69.0/rclone-v1.69.0-linux-amd64.zip",
+      "sha256": "REPLACE_WITH_VERIFIED_SHA256"
+    },
+    "arm64": {
+      "url": "https://downloads.rclone.org/v1.69.0/rclone-v1.69.0-linux-arm64.zip",
+      "sha256": "REPLACE_WITH_VERIFIED_SHA256"
+    }
+  }
+}

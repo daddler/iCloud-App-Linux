@@ -1,0 +1,26 @@
+name: Build AppImage
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: sudo apt-get update && sudo apt-get install -y jq unzip fuse3
+      - run: npm ci
+      - run: npm run prebuild:rclone
+      - run: npm run build
+      - run: npx electron-builder --linux AppImage
+      - uses: actions/upload-artifact@v4
+        with:
+          name: icloud-explorer-appimage
+          path: release/*.AppImage

@@ -1,0 +1,29 @@
+appId: com.icloudexplorer.linux
+productName: iCloud Explorer
+directories:
+  output: release
+  buildResources: resources/icons
+files:
+  - dist/**/*
+  - package.json
+extraResources:
+  - from: resources/rclone/${arch}
+    to: rclone/${arch}
+    filter:
+      - rclone
+asarUnpack:
+  - resources/rclone/**
+linux:
+  target:
+    - target: AppImage
+      arch:
+        - x64
+  category: Utility
+  icon: resources/icons
+  desktop:
+    entry:
+      Name: iCloud Explorer
+      Comment: Browse, edit and upload files to iCloud Drive and Photos
+      Categories: Utility;Network;FileManager;
+appImage:
+  license: LICENSE

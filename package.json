@@ -1,0 +1,50 @@
+{
+  "name": "icloud-explorer-linux",
+  "productName": "iCloud Explorer",
+  "version": "0.1.0",
+  "description": "Linux desktop app for browsing, editing and uploading files to iCloud Drive and iCloud Photos, packaged as an AppImage.",
+  "private": true,
+  "type": "module",
+  "main": "dist/electron/main/index.js",
+  "author": "",
+  "license": "MIT",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "dev:mock": "E2E_MOCK_RCLONE=1 electron-vite dev",
+    "build": "electron-vite build",
+    "typecheck": "tsc --noEmit -p tsconfig.main.json && tsc --noEmit -p tsconfig.renderer.json",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "prebuild:rclone": "bash scripts/fetch-rclone.sh",
+    "package:linux": "npm run prebuild:rclone && npm run build && electron-builder --linux AppImage"
+  },
+  "dependencies": {
+    "@tanstack/react-query": "^5.59.0",
+    "@tanstack/react-virtual": "^3.10.8",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.11.1",
+    "@testing-library/react": "^16.0.1",
+    "@types/node": "^22.7.4",
+    "@types/react": "^18.3.11",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.2",
+    "autoprefixer": "^10.4.20",
+    "electron": "^32.1.2",
+    "electron-builder": "^25.1.7",
+    "electron-vite": "^2.3.0",
+    "eslint": "^9.11.1",
+    "eslint-plugin-react": "^7.37.1",
+    "eslint-plugin-react-hooks": "^5.0.0",
+    "jsdom": "^25.0.1",
+    "postcss": "^8.4.47",
+    "tailwindcss": "^3.4.13",
+    "typescript": "^5.6.2",
+    "typescript-eslint": "^8.7.0",
+    "vite": "^5.4.8",
+    "vitest": "^2.1.2"
+  }
+}

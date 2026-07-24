@@ -1,0 +1,118 @@
+import { join } from 'node:path';
+import { app, BrowserWindow } from 'electron';
+import { RcloneManager } from './rclone/RcloneManager';
+import { AuthService } from './auth/AuthService';
+import { MountManager } from './mount/MountManager';
+import { FsBridge } from './fs/FsBridge';
+import { TransferService } from './transfer/TransferService';
+import { PhotosService } from './photos/PhotosService';
+import { AppState } from './state/AppState';
+import { registerIpcHandlers } from './ipc/registerIpcHandlers';
+import { registerMediaProtocolScheme, setupMediaProtocolHandler } from './protocol/mediaProtocol';
+
+const isDev = !app.isPackaged;
+const MOCK_MODE = process.env.E2E_MOCK_RCLONE === '1';
+
+registerMediaProtocolScheme(); // must run before app 'ready'
+
+let mainWindow: BrowserWindow | null = null;
+let rcloneManager: RcloneManager | null = null;
+let mountManager: MountManager | null = null;
+
+// Bundled as ESM (root package.json has "type": "module"), so use
+// import.meta.dirname (Node 20.11+, present in Electron 32's bundled Node)
+// rather than the CJS-only __dirname.
+const mainDir = import.meta.dirname;
+
+async function createWindow(): Promise<void> {
+  mainWindow = new BrowserWindow({
+    width: 1200,
+    height: 800,
+    webPreferences: {
+      preload: join(mainDir, '../preload/index.mjs'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true,
+    },
+  });
+
+  if (isDev && process.env.ELECTRON_RENDERER_URL) {
+    await mainWindow.loadURL(process.env.ELECTRON_RENDERER_URL);
+  } else {
+    await mainWindow.loadFile(join(mainDir, '../renderer/index.html'));
+  }
+}
+
+async function bootstrap(): Promise<void> {
+  const appState = new AppState();
+  appState.load();
+
+  await createWindow();
+  if (!mainWindow) throw new Error('Main window failed to initialize');
+  const win = mainWindow;
+
+  if (MOCK_MODE) {
+    console.log('[main] Running in E2E_MOCK_RCLONE mode: real rclone/auth/mount are skipped.');
+    // In mock mode the renderer is expected to be driven by test fixtures;
+    // IPC handlers are intentionally not registered here (see test/e2e).
+    return;
+  }
+
+  const { value: configPass } = appState.getOrCreateConfigPass();
+  const configPath = join(app.getPath('userData'), 'rclone.conf');
+
+  rcloneManager = new RcloneManager({ configPath, configPass });
+  await rcloneManager.start();
+  const rc = rcloneManager.getClient();
+
+  mountManager = new MountManager(rc, {
+    drivePoint: join(app.getPath('userData'), 'mount', 'drive'),
+    photosPoint: join(app.getPath('userData'), 'mount', 'photos'),
+  });
+
+  const authService = new AuthService(rc);
+  const status = await authService.status();
+  if (status.isAuthenticated) {
+    await mountManager.mountAll();
+  }
+
+  const fsBridge = new FsBridge(mountManager.getDriveMountPoint());
+  const transferService = new TransferService(rc, () => mainWindow?.webContents ?? null);
+  const photosService = new PhotosService(mountManager.getPhotosMountPoint());
+
+  setupMediaProtocolHandler({
+    drive: mountManager.getDriveMountPoint(),
+    photos: mountManager.getPhotosMountPoint(),
+  });
+
+  registerIpcHandlers({
+    window: win,
+    authService,
+    mountManager,
+    fsBridge,
+    transferService,
+    photosService,
+  });
+}
+
+app.whenReady().then(bootstrap);
+
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin') app.quit();
+});
+
+app.on('activate', () => {
+  if (BrowserWindow.getAllWindows().length === 0) void createWindow();
+});
+
+let quitting = false;
+app.on('before-quit', (event) => {
+  if (quitting || !mountManager) return;
+  event.preventDefault();
+  quitting = true;
+  void (async () => {
+    await mountManager?.unmountAll();
+    await rcloneManager?.shutdown();
+    app.quit();
+  })();
+});
