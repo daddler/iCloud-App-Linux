@@ -18,6 +18,8 @@ Zugangsdaten werden ausschließlich lokal gespeichert (verschlüsselt über den 
 
 ## Nutzung (fertige AppImage)
 
+Jeder Push auf `main` baut die AppImage automatisch per GitHub Actions (`.github/workflows/release.yml`) und veröffentlicht sie als neues GitHub Release (Tag-Format `v<package-version>-<short-sha>`). Die aktuelle AppImage findest du also immer unter [Releases](../../releases) oder als Workflow-Artefakt unter [Actions](../../actions/workflows/release.yml).
+
 ```bash
 chmod +x iCloud-Explorer-*.AppImage
 ./iCloud-Explorer-*.AppImage
@@ -26,6 +28,8 @@ chmod +x iCloud-Explorer-*.AppImage
 Beim ersten Start: Apple-ID + Passwort eingeben, den per Push/SMS gesendeten Bestätigungscode eingeben — danach wird iCloud Drive automatisch eingehängt und im Explorer angezeigt.
 
 ## Entwicklung
+
+Entwicklung findet direkt auf `main` statt — jeder Push löst automatisch CI (`ci.yml`) und den Release-Build (`release.yml`) aus.
 
 ```bash
 npm install
