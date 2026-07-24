@@ -29,7 +29,7 @@ async function createWindow(): Promise<void> {
     width: 1200,
     height: 800,
     webPreferences: {
-      preload: join(mainDir, '../preload/index.mjs'),
+      preload: join(mainDir, '../preload/index.cjs'),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
