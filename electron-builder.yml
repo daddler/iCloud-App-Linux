@@ -17,6 +17,8 @@ extraResources:
     to: rclone/${arch}
     filter:
       - rclone
+  - from: resources/icons
+    to: icons
 asarUnpack:
   - resources/rclone/**
 linux:

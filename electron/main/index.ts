@@ -14,6 +14,8 @@ import {
   removeFileManagerBookmarks,
   type FileManagerBookmark,
 } from './integration/fileManagerIntegration';
+import { TrayManager } from './tray/TrayManager';
+import { PreferencesController } from './preferences/PreferencesController';
 
 const isDev = !app.isPackaged;
 const MOCK_MODE = process.env.E2E_MOCK_RCLONE === '1';
@@ -23,6 +25,7 @@ registerMediaProtocolScheme(); // must run before app 'ready'
 let mainWindow: BrowserWindow | null = null;
 let rcloneManager: RcloneManager | null = null;
 let mountManager: MountManager | null = null;
+let quitting = false;
 
 // Bundled as ESM (root package.json has "type": "module"), so use
 // import.meta.dirname (Node 20.11+, present in Electron 32's bundled Node)
@@ -99,6 +102,15 @@ async function bootstrap(): Promise<void> {
   const transferService = new TransferService(rc, () => mainWindow?.webContents ?? null);
   const photosService = new PhotosService(mountManager.getPhotosMountPoint());
 
+  const trayManager = new TrayManager(win, () => app.quit());
+  const preferencesController = new PreferencesController(appState, trayManager);
+  win.on('close', (event) => {
+    if (!quitting && preferencesController.shouldHideOnClose()) {
+      event.preventDefault();
+      win.hide();
+    }
+  });
+
   setupMediaProtocolHandler({
     drive: mountManager.getDriveMountPoint(),
     photos: mountManager.getPhotosMountPoint(),
@@ -111,6 +123,7 @@ async function bootstrap(): Promise<void> {
     fsBridge,
     transferService,
     photosService,
+    preferencesController,
   });
 
   await loadWindowContent(win);
@@ -126,7 +139,6 @@ app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) void loadWindowContent(createWindow());
 });
 
-let quitting = false;
 app.on('before-quit', (event) => {
   if (quitting || !mountManager) return;
   event.preventDefault();

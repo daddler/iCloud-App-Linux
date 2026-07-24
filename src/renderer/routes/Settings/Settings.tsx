@@ -1,7 +1,20 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import type { AppPreferences } from '@shared/ipc-types';
+import { Toggle } from '../../components/Toggle';
 
 export function Settings({ onLoggedOut }: { onLoggedOut: () => void }) {
   const [busy, setBusy] = useState(false);
+  const [preferences, setPreferences] = useState<AppPreferences | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    window.icloud.app.getPreferences().then((prefs) => {
+      if (!cancelled) setPreferences(prefs);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function handleLogout() {
     setBusy(true);
@@ -13,9 +26,53 @@ export function Settings({ onLoggedOut }: { onLoggedOut: () => void }) {
     }
   }
 
+  async function handleAutostartChange(enabled: boolean) {
+    setPreferences((prev) => (prev ? { ...prev, autostart: enabled } : prev));
+    await window.icloud.app.setAutostart(enabled);
+  }
+
+  async function handleMinimizeToTrayChange(enabled: boolean) {
+    setPreferences((prev) => (prev ? { ...prev, minimizeToTray: enabled } : prev));
+    await window.icloud.app.setMinimizeToTray(enabled);
+  }
+
   return (
     <div className="mx-auto max-w-lg p-8">
       <h1 className="mb-6 text-xl font-semibold">Einstellungen</h1>
+
+      <section className="mb-6 rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
+        <h2 className="mb-2 text-sm font-medium">Verhalten</h2>
+
+        <div className="flex items-center justify-between gap-4 py-2">
+          <div>
+            <p className="text-sm">Beim Systemstart starten</p>
+            <p className="text-xs text-neutral-500 dark:text-neutral-400">
+              Startet iCloud Explorer automatisch, wenn du dich anmeldest.
+            </p>
+          </div>
+          <Toggle
+            label="Beim Systemstart starten"
+            checked={preferences?.autostart ?? false}
+            disabled={!preferences}
+            onChange={handleAutostartChange}
+          />
+        </div>
+
+        <div className="flex items-center justify-between gap-4 py-2">
+          <div>
+            <p className="text-sm">In den Tray minimieren</p>
+            <p className="text-xs text-neutral-500 dark:text-neutral-400">
+              Schließen minimiert das Fenster in den Tray, statt die App zu beenden.
+            </p>
+          </div>
+          <Toggle
+            label="In den Tray minimieren"
+            checked={preferences?.minimizeToTray ?? false}
+            disabled={!preferences}
+            onChange={handleMinimizeToTrayChange}
+          />
+        </div>
+      </section>
 
       <section className="mb-6 rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
         <h2 className="mb-2 text-sm font-medium">Konto</h2>

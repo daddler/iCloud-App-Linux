@@ -29,6 +29,7 @@ export interface AuthStartResult {
 export interface AuthStatus {
   isAuthenticated: boolean;
   appleIdMasked?: string;
+  userInitials?: string;
   needsReauth: boolean;
 }
 
@@ -60,6 +61,11 @@ export interface PhotoAsset {
   thumbnailAvailable: boolean;
 }
 
+export interface AppPreferences {
+  autostart: boolean;
+  minimizeToTray: boolean;
+}
+
 export interface IcloudBridge {
   auth: {
     status(): Promise<AuthStatus>;
@@ -89,6 +95,11 @@ export interface IcloudBridge {
     listAlbums(): Promise<string[]>;
     listAlbum(album: string): Promise<PhotoAsset[]>;
     download(paths: string[], destDir?: string): Promise<StartTransferResult>;
+  };
+  app: {
+    getPreferences(): Promise<AppPreferences>;
+    setAutostart(enabled: boolean): Promise<void>;
+    setMinimizeToTray(enabled: boolean): Promise<void>;
   };
 }
 

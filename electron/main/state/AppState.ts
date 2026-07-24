@@ -6,9 +6,10 @@ import { app, safeStorage } from 'electron';
 interface PersistedState {
   hasCompletedOnboarding: boolean;
   appleIdMasked?: string;
+  minimizeToTray: boolean;
 }
 
-const DEFAULT_STATE: PersistedState = { hasCompletedOnboarding: false };
+const DEFAULT_STATE: PersistedState = { hasCompletedOnboarding: false, minimizeToTray: false };
 
 /**
  * Owns two small pieces of on-disk state:

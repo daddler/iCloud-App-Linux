@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron';
 import type {
+  AppPreferences,
   AuthStartResult,
   AuthStatus,
   DirEntry,
@@ -50,6 +51,11 @@ const bridge: IcloudBridge = {
     listAlbum: (album) => ipcRenderer.invoke('photos:listAlbum', album) as Promise<PhotoAsset[]>,
     download: (paths, destDir) =>
       ipcRenderer.invoke('photos:download', paths, destDir) as Promise<StartTransferResult>,
+  },
+  app: {
+    getPreferences: () => ipcRenderer.invoke('app:getPreferences') as Promise<AppPreferences>,
+    setAutostart: (enabled) => ipcRenderer.invoke('app:setAutostart', enabled) as Promise<void>,
+    setMinimizeToTray: (enabled) => ipcRenderer.invoke('app:setMinimizeToTray', enabled) as Promise<void>,
   },
 };
 

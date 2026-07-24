@@ -5,6 +5,7 @@ import type { FsBridge } from '../fs/FsBridge';
 import type { MountManager } from '../mount/MountManager';
 import type { PhotosService } from '../photos/PhotosService';
 import type { TransferService } from '../transfer/TransferService';
+import type { PreferencesController } from '../preferences/PreferencesController';
 
 export interface IpcDependencies {
   window: BrowserWindow;
@@ -13,10 +14,12 @@ export interface IpcDependencies {
   fsBridge: FsBridge;
   transferService: TransferService;
   photosService: PhotosService;
+  preferencesController: PreferencesController;
 }
 
 export function registerIpcHandlers(deps: IpcDependencies): void {
-  const { window, authService, mountManager, fsBridge, transferService, photosService } = deps;
+  const { window, authService, mountManager, fsBridge, transferService, photosService, preferencesController } =
+    deps;
 
   ipcMain.handle('auth:status', () => authService.status());
   ipcMain.handle('auth:startLogin', (_e, appleId: string, password: string) =>
@@ -57,4 +60,8 @@ export function registerIpcHandlers(deps: IpcDependencies): void {
     void photosService.download(paths, target);
     return { jobId };
   });
+
+  ipcMain.handle('app:getPreferences', () => preferencesController.getPreferences());
+  ipcMain.handle('app:setAutostart', (_e, enabled: boolean) => preferencesController.setAutostart(enabled));
+  ipcMain.handle('app:setMinimizeToTray', (_e, enabled: boolean) => preferencesController.setMinimizeToTray(enabled));
 }

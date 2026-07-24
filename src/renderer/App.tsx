@@ -6,12 +6,6 @@ import { PhotosGallery } from './routes/PhotosGallery/PhotosGallery';
 import { Settings } from './routes/Settings/Settings';
 import { Spinner } from './components/Spinner';
 
-/** Derives 2-letter initials from the visible part of a masked Apple ID (e.g. "fa***@icloud.com" -> "FA"). */
-function getUserInitials(appleIdMasked?: string): string | undefined {
-  const local = appleIdMasked?.split('@')[0]?.replace(/\*/g, '');
-  return local ? local.slice(0, 2).toUpperCase() : undefined;
-}
-
 export default function App() {
   const [view, setView] = useState<AppView | 'loading'>('loading');
   const [authStatus, setAuthStatus] = useState<AuthStatus | null>(null);
@@ -53,7 +47,7 @@ export default function App() {
           label="Einstellungen"
           active={view === 'settings'}
           onClick={() => setView('settings')}
-          content={getUserInitials(authStatus?.appleIdMasked)}
+          content={authStatus?.userInitials}
           rounded
         />
       </nav>

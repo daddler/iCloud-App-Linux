@@ -12,6 +12,25 @@ function maskAppleId(appleId: string): string {
 }
 
 /**
+ * Derives 2-letter initials from the Apple ID's local part, e.g.
+ * "fabian.watermuelder@..." -> "FW" (first letter of first + last name
+ * segment), falling back to the first two characters for a single-segment
+ * local part (e.g. "fabian@..." -> "FA").
+ */
+function computeInitials(appleId: string): string | undefined {
+  const local = appleId.split('@')[0];
+  if (!local) return undefined;
+  const segments = local.split(/[._-]+/).filter(Boolean);
+  if (segments.length >= 2) {
+    return (segments[0][0] + segments[segments.length - 1][0]).toUpperCase();
+  }
+  if (segments.length === 1 && segments[0].length > 0) {
+    return segments[0].slice(0, 2).toUpperCase();
+  }
+  return undefined;
+}
+
+/**
  * Drives Apple ID + 2FA authentication for the `icloud` rclone remote via
  * rclone's rc `config/create` / `config/update` "continuation" protocol
  * (the same mechanism `rclone config create` uses interactively, but driven
@@ -42,7 +61,12 @@ export class AuthService {
         return { isAuthenticated: false, needsReauth: false };
       }
       const appleId = typeof remote.apple_id === 'string' ? remote.apple_id : undefined;
-      return { isAuthenticated: true, needsReauth: false, appleIdMasked: appleId ? maskAppleId(appleId) : undefined };
+      return {
+        isAuthenticated: true,
+        needsReauth: false,
+        appleIdMasked: appleId ? maskAppleId(appleId) : undefined,
+        userInitials: appleId ? computeInitials(appleId) : undefined,
+      };
     } catch {
       return { isAuthenticated: false, needsReauth: false };
     }
