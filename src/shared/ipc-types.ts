@@ -86,6 +86,7 @@ export interface IcloudBridge {
     onProgress(jobId: string, cb: (p: TransferProgress) => void): () => void;
   };
   photos: {
+    listAlbums(): Promise<string[]>;
     listAlbum(album: string): Promise<PhotoAsset[]>;
     download(paths: string[], destDir?: string): Promise<StartTransferResult>;
   };

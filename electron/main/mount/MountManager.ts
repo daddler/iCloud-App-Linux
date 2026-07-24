@@ -56,8 +56,15 @@ export class MountManager {
     }
 
     try {
+      // The iclouddrive backend serves Drive by default; Photos needs the
+      // `service=photos` backend option (rclone connection-string syntax),
+      // and the browsable album hierarchy (e.g. "All Photos", "Favorites")
+      // lives one level down, under the primary library "PrimarySync" -
+      // see https://rclone.org/iclouddrive/. A bare `icloud:Photos` (as used
+      // previously) is parsed as "Drive root, path 'Photos'", which doesn't
+      // exist and made every album listing fail with ENOENT.
       await this.rc.call('mount/mount', {
-        fs: 'icloud:Photos',
+        fs: 'icloud,service=photos:PrimarySync',
         mountPoint: this.paths.photosPoint,
         vfsOpt: { CacheMode: 'off', ReadOnly: true },
         mountOpt: { ReadOnly: true },

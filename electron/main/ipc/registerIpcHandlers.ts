@@ -45,6 +45,7 @@ export function registerIpcHandlers(deps: IpcDependencies): void {
     transferService.copyIn(sourceAbsPaths, fsBridge.toAbsolutePath(destRelDir)),
   );
 
+  ipcMain.handle('photos:listAlbums', () => photosService.listAlbums());
   ipcMain.handle('photos:listAlbum', (_e, album: string) => photosService.listAlbum(album));
   ipcMain.handle('photos:download', async (_e, paths: string[], destDir?: string) => {
     const target =

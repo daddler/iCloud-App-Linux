@@ -9,6 +9,11 @@ import { PhotosService } from './photos/PhotosService';
 import { AppState } from './state/AppState';
 import { registerIpcHandlers } from './ipc/registerIpcHandlers';
 import { registerMediaProtocolScheme, setupMediaProtocolHandler } from './protocol/mediaProtocol';
+import {
+  addFileManagerBookmarks,
+  removeFileManagerBookmarks,
+  type FileManagerBookmark,
+} from './integration/fileManagerIntegration';
 
 const isDev = !app.isPackaged;
 const MOCK_MODE = process.env.E2E_MOCK_RCLONE === '1';
@@ -79,7 +84,15 @@ async function bootstrap(): Promise<void> {
   const authService = new AuthService(rc);
   const status = await authService.status();
   if (status.isAuthenticated) {
-    await mountManager.mountAll();
+    const mountStatus = await mountManager.mountAll();
+    const bookmarks: FileManagerBookmark[] = [];
+    if (mountStatus.driveMounted) {
+      bookmarks.push({ path: mountManager.getDriveMountPoint(), label: 'iCloud Drive' });
+    }
+    if (mountStatus.photosMounted) {
+      bookmarks.push({ path: mountManager.getPhotosMountPoint(), label: 'iCloud Fotos' });
+    }
+    addFileManagerBookmarks(bookmarks);
   }
 
   const fsBridge = new FsBridge(mountManager.getDriveMountPoint());
@@ -119,7 +132,10 @@ app.on('before-quit', (event) => {
   event.preventDefault();
   quitting = true;
   void (async () => {
-    await mountManager?.unmountAll();
+    if (mountManager) {
+      removeFileManagerBookmarks([mountManager.getDriveMountPoint(), mountManager.getPhotosMountPoint()]);
+      await mountManager.unmountAll();
+    }
     await rcloneManager?.shutdown();
     app.quit();
   })();
