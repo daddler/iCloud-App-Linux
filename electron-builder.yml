@@ -1,5 +1,11 @@
 appId: com.icloudexplorer.linux
 productName: iCloud Explorer
+# v1 ships the AppImage as a downloadable CI artifact / manually attached
+# release asset, not via electron-builder's auto-publish-to-GitHub-Releases
+# (that would need a GH_TOKEN with contents:write wired into the workflow).
+# Note: "never" is a CLI --publish *policy* value, not a valid publish
+# provider name — disabling publish in config itself requires `null`.
+publish: null
 directories:
   output: release
   buildResources: resources/icons

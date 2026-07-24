@@ -25,7 +25,7 @@ describe('resolveRcloneBinaryPath', () => {
 
   it('finds the bundled binary under resources/rclone/<arch>/rclone relative to the app path', async () => {
     Object.defineProperty(process, 'arch', { value: 'x64' });
-    const binDir = join(appRoot, 'resources', 'rclone', 'x86_64');
+    const binDir = join(appRoot, 'resources', 'rclone', 'x64');
     mkdirSync(binDir, { recursive: true });
     writeFileSync(join(binDir, 'rclone'), '#!/bin/sh\necho stub');
 

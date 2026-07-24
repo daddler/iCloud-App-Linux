@@ -2,13 +2,18 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { app } from 'electron';
 
-/** Maps Node's os.arch() values to the folder names used under resources/rclone. */
+/**
+ * Folder names under resources/rclone use Node's/electron-builder's arch
+ * naming ("x64", "arm64") directly — NOT the uname-style "x86_64" rclone
+ * itself uses for its release filenames — so that electron-builder.yml's
+ * `${arch}` extraResources macro (which expands to "x64"/"arm64") lines up
+ * with what scripts/fetch-rclone.sh actually wrote to disk.
+ */
 function archFolder(): string {
   switch (process.arch) {
     case 'x64':
-      return 'x86_64';
     case 'arm64':
-      return 'arm64';
+      return process.arch;
     default:
       throw new Error(`Unsupported architecture for bundled rclone: ${process.arch}`);
   }

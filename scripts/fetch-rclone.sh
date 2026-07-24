@@ -3,7 +3,13 @@
 # into resources/rclone/<arch>/rclone, verifying its SHA256 against
 # resources/rclone/checksums.json before it is ever executed.
 #
-# Usage: scripts/fetch-rclone.sh [x86_64|arm64]
+# <arch> uses Node's/electron-builder's naming ("x64", "arm64"), NOT rclone's
+# own uname-style release filenames ("linux-amd64"/"linux-arm64") — this must
+# stay in sync with electron/main/rclone/binaryResolver.ts and the `${arch}`
+# extraResources macro in electron-builder.yml, both of which also use
+# "x64"/"arm64".
+#
+# Usage: scripts/fetch-rclone.sh [x64|arm64]
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -17,7 +23,7 @@ fi
 ARCH="${1:-}"
 if [ -z "$ARCH" ]; then
   case "$(uname -m)" in
-    x86_64) ARCH="x86_64" ;;
+    x86_64) ARCH="x64" ;;
     aarch64|arm64) ARCH="arm64" ;;
     *) echo "error: unsupported host architecture $(uname -m)" >&2; exit 1 ;;
   esac

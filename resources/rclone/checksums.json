@@ -1,8 +1,8 @@
 {
-  "_comment": "Pinned rclone release used for the bundled binary. sha256 values verified against the PGP-signed SHA256SUMS published at https://github.com/rclone/rclone/releases/download/v1.69.0/SHA256SUMS. Update deliberately, not automatically, and re-verify the M1 2FA continuation spike (see plan docs) against any new version before bumping.",
+  "_comment": "Pinned rclone release used for the bundled binary. Artifact keys use Node's/electron-builder's arch naming (x64, arm64), not rclone's own uname-style release filenames — keep in sync with binaryResolver.ts and electron-builder.yml's ${arch} macro. sha256 values verified against the PGP-signed SHA256SUMS published at https://github.com/rclone/rclone/releases/download/v1.69.0/SHA256SUMS. Update deliberately, not automatically, and re-verify the M1 2FA continuation spike (see plan docs) against any new version before bumping.",
   "version": "1.69.0",
   "artifacts": {
-    "x86_64": {
+    "x64": {
       "url": "https://downloads.rclone.org/v1.69.0/rclone-v1.69.0-linux-amd64.zip",
       "sha256": "813892bb54ebc5891664b85c9cfc0e05ee50d39e3d5bb1ddd6d53d0f93a64dc2"
     },
