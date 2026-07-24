@@ -1,14 +1,14 @@
 {
-  "_comment": "Pinned rclone release used for the bundled binary. Artifact keys use Node's/electron-builder's arch naming (x64, arm64), not rclone's own uname-style release filenames — keep in sync with binaryResolver.ts and electron-builder.yml's ${arch} macro. sha256 values verified against the PGP-signed SHA256SUMS published at https://github.com/rclone/rclone/releases/download/v1.69.0/SHA256SUMS. Update deliberately, not automatically, and re-verify the M1 2FA continuation spike (see plan docs) against any new version before bumping.",
-  "version": "1.69.0",
+  "_comment": "Pinned rclone release used for the bundled binary. Artifact keys use Node's/electron-builder's arch naming (x64, arm64), not rclone's own uname-style release filenames — keep in sync with binaryResolver.ts and electron-builder.yml's ${arch} macro. Bumped from 1.69.0 to 1.74.4: v1.69.0 used the iclouddrive backend's plaintext /appleauth/auth/signin flow, which Apple has since blocked, making every login fail with HTTP 400 'Invalid Session Token' (rclone#8155, rclone#8587) regardless of correct credentials. rclone PR #9209/#9234 (merged into v1.74.0) replaced this with SRP authentication, matching what the iCloud web UI itself uses. sha256 values verified against the SHA256SUMS release asset at https://github.com/rclone/rclone/releases/download/v1.74.4/SHA256SUMS. Update deliberately, not automatically, and re-verify the 2FA continuation flow against any new version before bumping.",
+  "version": "1.74.4",
   "artifacts": {
     "x64": {
-      "url": "https://downloads.rclone.org/v1.69.0/rclone-v1.69.0-linux-amd64.zip",
-      "sha256": "813892bb54ebc5891664b85c9cfc0e05ee50d39e3d5bb1ddd6d53d0f93a64dc2"
+      "url": "https://downloads.rclone.org/v1.74.4/rclone-v1.74.4-linux-amd64.zip",
+      "sha256": "fe435e0c36228e7c2f116a8701f01127bb1f694005fc11d1f27186c8bca4115d"
     },
     "arm64": {
-      "url": "https://downloads.rclone.org/v1.69.0/rclone-v1.69.0-linux-arm64.zip",
-      "sha256": "82e4c24ee0cdbdfb93356e66cf14875ae4063f9923d2678e7d686119e98d75fe"
+      "url": "https://downloads.rclone.org/v1.74.4/rclone-v1.74.4-linux-arm64.zip",
+      "sha256": "97685285c9ad6a0cf17d5844115d2a67245af6444db672187074bd9c358de419"
     }
   }
 }
