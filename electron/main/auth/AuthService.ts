@@ -3,6 +3,14 @@ import type { AuthStartResult, AuthStatus } from '@shared/ipc-types';
 
 const REMOTE_NAME = 'icloud';
 
+/** Keeps the first couple of characters of the local part visible (e.g. for initials), masks the rest. */
+function maskAppleId(appleId: string): string {
+  const [local, domain] = appleId.split('@');
+  if (!local || !domain) return appleId;
+  const visible = local.slice(0, 2);
+  return `${visible}${'*'.repeat(Math.max(local.length - visible.length, 3))}@${domain}`;
+}
+
 /**
  * Drives Apple ID + 2FA authentication for the `icloud` rclone remote via
  * rclone's rc `config/create` / `config/update` "continuation" protocol
@@ -29,7 +37,8 @@ export class AuthService {
       if (!remote) {
         return { isAuthenticated: false, needsReauth: false };
       }
-      return { isAuthenticated: true, needsReauth: false };
+      const appleId = typeof remote.apple_id === 'string' ? remote.apple_id : undefined;
+      return { isAuthenticated: true, needsReauth: false, appleIdMasked: appleId ? maskAppleId(appleId) : undefined };
     } catch {
       return { isAuthenticated: false, needsReauth: false };
     }
