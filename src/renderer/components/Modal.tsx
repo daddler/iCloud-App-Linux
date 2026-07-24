@@ -10,12 +10,12 @@ export function Modal({
   onClose: () => void;
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
       <div
-        className="w-96 rounded-xl bg-white p-5 shadow-xl dark:bg-neutral-800"
+        className="w-96 rounded-xl border border-nimbus-border bg-nimbus-surface p-5 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="mb-4 text-lg font-semibold">{title}</h2>
+        <h2 className="mb-4 text-lg font-bold text-nimbus-heading">{title}</h2>
         {children}
       </div>
     </div>

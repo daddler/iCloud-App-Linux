@@ -7,7 +7,10 @@ import { FsBridge } from './fs/FsBridge';
 import { TransferService } from './transfer/TransferService';
 import { PhotosService } from './photos/PhotosService';
 import { AppState } from './state/AppState';
-import { registerIpcHandlers } from './ipc/registerIpcHandlers';
+import { ContactsService } from './contacts/ContactsService';
+import { CalendarService } from './calendar/CalendarService';
+import { registerIpcHandlers, registerWindowIpcHandlers, registerDavIpcHandlers } from './ipc/registerIpcHandlers';
+import { registerMockIpcHandlers } from './mock/mockIpc';
 import { registerMediaProtocolScheme, setupMediaProtocolHandler } from './protocol/mediaProtocol';
 import {
   addFileManagerBookmarks,
@@ -36,6 +39,10 @@ function createWindow(): BrowserWindow {
   return new BrowserWindow({
     width: 1200,
     height: 800,
+    minWidth: 860,
+    minHeight: 560,
+    frame: false,
+    backgroundColor: '#0b0d12',
     webPreferences: {
       preload: join(mainDir, '../preload/index.cjs'),
       contextIsolation: true,
@@ -63,14 +70,18 @@ async function bootstrap(): Promise<void> {
   // mount before rclone has finished starting up).
   mainWindow = createWindow();
   const win = mainWindow;
+  registerWindowIpcHandlers(win);
 
   if (MOCK_MODE) {
-    console.log('[main] Running in E2E_MOCK_RCLONE mode: real rclone/auth/mount are skipped.');
-    // In mock mode the renderer is expected to be driven by test fixtures;
-    // IPC handlers are intentionally not registered here (see test/e2e).
+    console.log('[main] Running in E2E_MOCK_RCLONE mode: real rclone/auth/mount/DAV are replaced with in-memory fixtures.');
+    registerMockIpcHandlers(win);
     await loadWindowContent(win);
     return;
   }
+
+  const contactsService = new ContactsService(() => appState.getDavCredentials());
+  const calendarService = new CalendarService(() => appState.getDavCredentials());
+  registerDavIpcHandlers(appState, contactsService, calendarService);
 
   const { value: configPass } = appState.getOrCreateConfigPass();
   const configPath = join(app.getPath('userData'), 'rclone.conf');

@@ -15,6 +15,38 @@ describe('FsBridge', () => {
     bridge = new FsBridge(root);
   });
 
+  describe('listRecent', () => {
+    it('finds files recursively across subdirectories, sorted by most recently modified first', async () => {
+      mkdirSync(join(root, 'Nested'));
+      writeFileSync(join(root, 'Nested', 'photo.jpg'), 'x'.repeat(10));
+      const recent = await bridge.listRecent(10);
+      expect(recent.map((r) => r.name).sort()).toEqual(['note.txt', 'photo.jpg']);
+    });
+
+    it('respects the limit', async () => {
+      writeFileSync(join(root, 'second.txt'), 'y');
+      const recent = await bridge.listRecent(1);
+      expect(recent).toHaveLength(1);
+    });
+
+    it('does not list directories themselves as recent entries', async () => {
+      const recent = await bridge.listRecent(10);
+      expect(recent.some((r) => r.name === 'Documents')).toBe(false);
+    });
+  });
+
+  describe('storageUsage', () => {
+    it('categorizes files by extension and sums total bytes', async () => {
+      writeFileSync(join(root, 'photo.jpg'), 'x'.repeat(20));
+      writeFileSync(join(root, 'archive.zip'), 'z'.repeat(7));
+      const usage = await bridge.storageUsage();
+      expect(usage.documentsBytes).toBe(5); // Documents/note.txt = "hello"
+      expect(usage.mediaBytes).toBe(20);
+      expect(usage.otherBytes).toBe(7);
+      expect(usage.totalBytes).toBe(32);
+    });
+  });
+
   afterEach(() => {
     rmSync(root, { recursive: true, force: true });
   });

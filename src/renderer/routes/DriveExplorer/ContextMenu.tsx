@@ -42,14 +42,14 @@ export function ContextMenu({
   return (
     <div
       ref={ref}
-      className="fixed z-50 w-56 rounded-lg border border-neutral-200 bg-white py-1 text-sm shadow-lg dark:border-neutral-700 dark:bg-neutral-800"
+      className="fixed z-50 w-56 rounded-lg border border-nimbus-border bg-nimbus-surface py-1 text-sm text-nimbus-text shadow-2xl"
       style={{ left: state.x, top: state.y }}
     >
       {items.map((item) => (
         <button
           key={item.label}
           type="button"
-          className="block w-full px-3 py-1.5 text-left hover:bg-neutral-100 dark:hover:bg-neutral-700"
+          className="block w-full px-3 py-1.5 text-left hover:bg-white/5"
           onClick={() => {
             item.action();
             onClose();

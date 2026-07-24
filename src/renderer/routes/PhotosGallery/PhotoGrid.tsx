@@ -36,7 +36,7 @@ export function PhotoGrid({ assets, onSelect }: { assets: PhotoAsset[]; onSelect
                   key={asset.id}
                   type="button"
                   onClick={() => onSelect(virtualRow.index * columns + i)}
-                  className="aspect-square overflow-hidden rounded-lg bg-neutral-200 hover:opacity-90 dark:bg-neutral-700"
+                  className="aspect-square overflow-hidden rounded-lg bg-nimbus-surface hover:opacity-90"
                 >
                   <img
                     src={`icloud-media://photos/${encodeURIComponent(asset.path)}`}

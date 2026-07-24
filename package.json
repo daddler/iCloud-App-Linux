@@ -1,7 +1,7 @@
 {
   "name": "icloud-explorer-linux",
   "productName": "iCloud Explorer",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Linux desktop app for browsing, editing and uploading files to iCloud Drive and iCloud Photos, packaged as an AppImage.",
   "private": true,
   "type": "module",
@@ -20,10 +20,14 @@
     "package:linux": "npm run prebuild:rclone && npm run build && electron-builder --linux AppImage"
   },
   "dependencies": {
+    "@fontsource/jetbrains-mono": "^5.3.0",
+    "@fontsource/manrope": "^5.3.0",
     "@tanstack/react-query": "^5.59.0",
     "@tanstack/react-virtual": "^3.10.8",
+    "ical.js": "^2.2.1",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "tsdav": "^2.3.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.11.1",

@@ -53,21 +53,39 @@ export function Onboarding({ onAuthenticated }: { onAuthenticated: () => void })
   }
 
   return (
-    <div className="flex h-full w-full items-center justify-center bg-neutral-50 dark:bg-neutral-900">
-      <div className="w-full max-w-sm rounded-2xl border border-neutral-200 bg-white p-8 shadow-sm dark:border-neutral-800 dark:bg-neutral-800">
+    <div
+      className="flex h-full w-full items-center justify-center bg-nimbus-bg"
+      style={{
+        background:
+          'radial-gradient(900px 500px at 12% -10%, rgba(120,90,255,0.18), transparent 60%), radial-gradient(700px 500px at 100% 100%, rgba(0,200,180,0.10), transparent 55%), linear-gradient(180deg, #0b0d12 0%, #0a0c11 100%)',
+      }}
+    >
+      <div className="w-full max-w-sm rounded-2xl border border-nimbus-border bg-nimbus-surface p-8 shadow-2xl">
+        <div className="mb-5 flex items-center gap-2">
+          <div
+            className="flex h-7 w-7 items-center justify-center rounded-md"
+            style={{ background: 'conic-gradient(from 210deg at 50% 50%, #7c5cff, #22d3ee, #7c5cff)' }}
+          >
+            <div className="h-2.5 w-2.5 rounded-sm bg-nimbus-bg" />
+          </div>
+          <div className="text-base font-extrabold tracking-tight text-nimbus-heading">
+            Nimbus<span className="text-nimbus-purple">.</span>
+          </div>
+        </div>
+
         {step === 'welcome' && (
           <>
-            <h1 className="mb-2 text-xl font-semibold">iCloud Explorer</h1>
-            <p className="mb-6 text-sm text-neutral-600 dark:text-neutral-300">
+            <h1 className="mb-2 text-xl font-bold text-nimbus-heading">iCloud Explorer</h1>
+            <p className="mb-6 text-sm text-nimbus-subtle">
               Diese App nutzt die inoffizielle iCloud-Weboberfläche über das Open-Source-Projekt{' '}
-              <code>rclone</code>, um deine iCloud Drive-Dateien und Fotos unter Linux zugänglich zu machen.
-              Sie ist nicht von Apple autorisiert oder mit Apple verbunden; Apple kann diesen Zugriff
-              jederzeit ändern oder blockieren. Deine Zugangsdaten verlassen dein Gerät nur in Richtung
-              der offiziellen iCloud-Server.
+              <code className="text-nimbus-cyan">rclone</code>, um deine iCloud Drive-Dateien und Fotos unter
+              Linux zugänglich zu machen. Sie ist nicht von Apple autorisiert oder mit Apple verbunden; Apple
+              kann diesen Zugriff jederzeit ändern oder blockieren. Deine Zugangsdaten verlassen dein Gerät nur
+              in Richtung der offiziellen iCloud-Server.
             </p>
             <button
               type="button"
-              className="w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+              className="w-full rounded-lg bg-nimbus-purple px-4 py-2 text-sm font-semibold text-white hover:brightness-110"
               onClick={() => setStep('credentials')}
             >
               Weiter
@@ -77,29 +95,29 @@ export function Onboarding({ onAuthenticated }: { onAuthenticated: () => void })
 
         {step === 'credentials' && (
           <form onSubmit={submitCredentials}>
-            <h1 className="mb-4 text-lg font-semibold">Mit Apple-ID anmelden</h1>
-            <label className="mb-1 block text-sm font-medium">Apple-ID</label>
+            <h1 className="mb-4 text-lg font-bold text-nimbus-heading">Mit Apple-ID anmelden</h1>
+            <label className="mb-1 block text-sm font-medium text-nimbus-text">Apple-ID</label>
             <input
               type="email"
               required
               value={appleId}
               onChange={(e) => setAppleId(e.target.value)}
-              className="mb-3 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-600 dark:bg-neutral-700"
+              className="mb-3 w-full rounded-lg border border-nimbus-border bg-black/25 px-3 py-2 text-sm text-nimbus-text outline-none"
               autoFocus
             />
-            <label className="mb-1 block text-sm font-medium">Passwort</label>
+            <label className="mb-1 block text-sm font-medium text-nimbus-text">Passwort</label>
             <input
               type="password"
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="mb-4 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-600 dark:bg-neutral-700"
+              className="mb-4 w-full rounded-lg border border-nimbus-border bg-black/25 px-3 py-2 text-sm text-nimbus-text outline-none"
             />
-            {error && <p className="mb-3 text-sm text-red-600">{error}</p>}
+            {error && <p className="mb-3 text-sm text-red-400">{error}</p>}
             <button
               type="submit"
               disabled={busy}
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60"
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-nimbus-purple px-4 py-2 text-sm font-semibold text-white hover:brightness-110 disabled:opacity-60"
             >
               {busy && <Spinner size={16} />}
               Anmelden
@@ -109,8 +127,8 @@ export function Onboarding({ onAuthenticated }: { onAuthenticated: () => void })
 
         {step === 'twofactor' && (
           <form onSubmit={submitCode}>
-            <h1 className="mb-2 text-lg font-semibold">Bestätigungscode</h1>
-            <p className="mb-4 text-sm text-neutral-600 dark:text-neutral-300">
+            <h1 className="mb-2 text-lg font-bold text-nimbus-heading">Bestätigungscode</h1>
+            <p className="mb-4 text-sm text-nimbus-subtle">
               Apple hat einen Code an eines deiner vertrauenswürdigen Geräte gesendet. Gib ihn unten ein.
             </p>
             <input
@@ -121,14 +139,14 @@ export function Onboarding({ onAuthenticated }: { onAuthenticated: () => void })
               required
               value={code}
               onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
-              className="mb-4 w-full rounded-lg border border-neutral-300 px-3 py-2 text-center text-lg tracking-widest dark:border-neutral-600 dark:bg-neutral-700"
+              className="mb-4 w-full rounded-lg border border-nimbus-border bg-black/25 px-3 py-2 text-center font-mono text-lg tracking-widest text-nimbus-text outline-none"
               autoFocus
             />
-            {error && <p className="mb-3 text-sm text-red-600">{error}</p>}
+            {error && <p className="mb-3 text-sm text-red-400">{error}</p>}
             <button
               type="submit"
               disabled={busy || code.length !== 6}
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60"
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-nimbus-purple px-4 py-2 text-sm font-semibold text-white hover:brightness-110 disabled:opacity-60"
             >
               {busy && <Spinner size={16} />}
               Bestätigen
@@ -139,7 +157,7 @@ export function Onboarding({ onAuthenticated }: { onAuthenticated: () => void })
         {step === 'connecting' && (
           <div className="flex flex-col items-center gap-3 py-6">
             <Spinner />
-            <p className="text-sm text-neutral-600 dark:text-neutral-300">Verbinde mit iCloud...</p>
+            <p className="text-sm text-nimbus-subtle">Verbinde mit iCloud...</p>
           </div>
         )}
       </div>

@@ -15,14 +15,14 @@ export function NewFolderDialog({ onSubmit, onClose }: { onSubmit: (name: string
           autoFocus
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="mb-4 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-600 dark:bg-neutral-700"
+          className="mb-4 w-full rounded-lg border border-nimbus-border bg-black/25 px-3 py-2 text-sm text-nimbus-text outline-none"
           placeholder="Ordnername"
         />
         <div className="flex justify-end gap-2">
-          <button type="button" onClick={onClose} className="rounded-lg px-3 py-1.5 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-700">
+          <button type="button" onClick={onClose} className="rounded-lg px-3 py-1.5 text-sm text-nimbus-subtle hover:bg-white/5">
             Abbrechen
           </button>
-          <button type="submit" className="rounded-lg bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-700">
+          <button type="submit" className="rounded-lg bg-nimbus-purple px-3 py-1.5 text-sm font-semibold text-white hover:brightness-110">
             Erstellen
           </button>
         </div>
@@ -53,13 +53,13 @@ export function RenameDialog({
           autoFocus
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="mb-4 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-600 dark:bg-neutral-700"
+          className="mb-4 w-full rounded-lg border border-nimbus-border bg-black/25 px-3 py-2 text-sm text-nimbus-text outline-none"
         />
         <div className="flex justify-end gap-2">
-          <button type="button" onClick={onClose} className="rounded-lg px-3 py-1.5 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-700">
+          <button type="button" onClick={onClose} className="rounded-lg px-3 py-1.5 text-sm text-nimbus-subtle hover:bg-white/5">
             Abbrechen
           </button>
-          <button type="submit" className="rounded-lg bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-700">
+          <button type="submit" className="rounded-lg bg-nimbus-purple px-3 py-1.5 text-sm font-semibold text-white hover:brightness-110">
             Speichern
           </button>
         </div>
@@ -79,11 +79,11 @@ export function ConfirmDeleteDialog({
 }) {
   return (
     <Modal title="Löschen bestätigen" onClose={onClose}>
-      <p className="mb-4 text-sm text-neutral-600 dark:text-neutral-300">
+      <p className="mb-4 text-sm text-nimbus-subtle">
         Soll &bdquo;{itemName}&ldquo; wirklich gelöscht werden? Dies kann nicht rückgängig gemacht werden.
       </p>
       <div className="flex justify-end gap-2">
-        <button type="button" onClick={onClose} className="rounded-lg px-3 py-1.5 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-700">
+        <button type="button" onClick={onClose} className="rounded-lg px-3 py-1.5 text-sm text-nimbus-subtle hover:bg-white/5">
           Abbrechen
         </button>
         <button
@@ -92,7 +92,7 @@ export function ConfirmDeleteDialog({
             onConfirm();
             onClose();
           }}
-          className="rounded-lg bg-red-600 px-3 py-1.5 text-sm text-white hover:bg-red-700"
+          className="rounded-lg bg-red-500 px-3 py-1.5 text-sm font-semibold text-white hover:bg-red-600"
         >
           Löschen
         </button>

@@ -3,16 +3,37 @@ import type {
   AppPreferences,
   AuthStartResult,
   AuthStatus,
+  CalendarEvent,
+  Contact,
   DirEntry,
   FileStat,
   IcloudBridge,
   MountStatus,
   PhotoAsset,
+  RecentEntry,
   StartTransferResult,
+  StorageUsage,
   TransferProgress,
 } from '@shared/ipc-types';
 
 const bridge: IcloudBridge = {
+  app: {
+    getVersion: () => ipcRenderer.invoke('app:getVersion') as Promise<string>,
+    getPreferences: () => ipcRenderer.invoke('app:getPreferences') as Promise<AppPreferences>,
+    setAutostart: (enabled) => ipcRenderer.invoke('app:setAutostart', enabled) as Promise<void>,
+    setMinimizeToTray: (enabled) => ipcRenderer.invoke('app:setMinimizeToTray', enabled) as Promise<void>,
+  },
+  window: {
+    minimize: () => ipcRenderer.invoke('window:minimize') as Promise<void>,
+    toggleMaximize: () => ipcRenderer.invoke('window:toggleMaximize') as Promise<void>,
+    close: () => ipcRenderer.invoke('window:close') as Promise<void>,
+    isMaximized: () => ipcRenderer.invoke('window:isMaximized') as Promise<boolean>,
+    onMaximizeChange: (cb) => {
+      const listener = (_event: Electron.IpcRendererEvent, isMaximized: boolean) => cb(isMaximized);
+      ipcRenderer.on('window:maximizeChanged', listener);
+      return () => ipcRenderer.removeListener('window:maximizeChanged', listener);
+    },
+  },
   auth: {
     status: () => ipcRenderer.invoke('auth:status') as Promise<AuthStatus>,
     startLogin: (appleId, password) =>
@@ -33,6 +54,8 @@ const bridge: IcloudBridge = {
     remove: (path, recursive) => ipcRenderer.invoke('fs:remove', path, recursive) as Promise<void>,
     openPath: (path) => ipcRenderer.invoke('fs:openPath', path) as Promise<string>,
     revealInFileManager: (path) => ipcRenderer.invoke('fs:revealInFileManager', path) as Promise<void>,
+    listRecent: (limit) => ipcRenderer.invoke('fs:listRecent', limit) as Promise<RecentEntry[]>,
+    storageUsage: () => ipcRenderer.invoke('fs:storageUsage') as Promise<StorageUsage>,
   },
   transfer: {
     getPathForFile: (file) => webUtils.getPathForFile(file),
@@ -52,10 +75,17 @@ const bridge: IcloudBridge = {
     download: (paths, destDir) =>
       ipcRenderer.invoke('photos:download', paths, destDir) as Promise<StartTransferResult>,
   },
-  app: {
-    getPreferences: () => ipcRenderer.invoke('app:getPreferences') as Promise<AppPreferences>,
-    setAutostart: (enabled) => ipcRenderer.invoke('app:setAutostart', enabled) as Promise<void>,
-    setMinimizeToTray: (enabled) => ipcRenderer.invoke('app:setMinimizeToTray', enabled) as Promise<void>,
+  davAuth: {
+    hasCredentials: () => ipcRenderer.invoke('davAuth:hasCredentials') as Promise<boolean>,
+    setCredentials: (appleId, appSpecificPassword) =>
+      ipcRenderer.invoke('davAuth:setCredentials', appleId, appSpecificPassword) as Promise<void>,
+    clearCredentials: () => ipcRenderer.invoke('davAuth:clearCredentials') as Promise<void>,
+  },
+  contacts: {
+    list: () => ipcRenderer.invoke('contacts:list') as Promise<Contact[]>,
+  },
+  calendar: {
+    listUpcoming: () => ipcRenderer.invoke('calendar:listUpcoming') as Promise<CalendarEvent[]>,
   },
 };
 

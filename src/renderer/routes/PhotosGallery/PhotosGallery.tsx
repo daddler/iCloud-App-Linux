@@ -39,7 +39,7 @@ export function PhotosGallery() {
 
   if (albumsError || !albums || albums.length === 0) {
     return (
-      <div className="flex h-full flex-col items-center justify-center gap-3 px-8 text-center text-sm text-neutral-600 dark:text-neutral-300">
+      <div className="flex h-full flex-col items-center justify-center gap-3 px-8 text-center text-sm text-nimbus-subtle">
         <p>
           Fotos sind derzeit nicht verfügbar. Möglicherweise konnte das Fotos-Laufwerk nicht
           eingehängt werden.
@@ -47,7 +47,7 @@ export function PhotosGallery() {
         <button
           type="button"
           onClick={handleRetry}
-          className="rounded-lg bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-700"
+          className="rounded-lg bg-nimbus-purple px-3 py-1.5 text-sm font-semibold text-white hover:brightness-110"
         >
           Erneut versuchen
         </button>
@@ -56,17 +56,15 @@ export function PhotosGallery() {
   }
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="flex items-center gap-2 border-b border-neutral-200 px-3 py-2 dark:border-neutral-800">
+    <div className="flex h-full flex-col bg-nimbus-bg">
+      <div className="flex items-center gap-2 border-b border-nimbus-border px-3 py-2">
         {albums.map((name) => (
           <button
             key={name}
             type="button"
             onClick={() => setAlbum(name)}
             className={`rounded-lg px-3 py-1.5 text-sm ${
-              album === name
-                ? 'bg-blue-600 text-white'
-                : 'hover:bg-neutral-100 dark:hover:bg-neutral-800'
+              album === name ? 'bg-nimbus-purple font-semibold text-white' : 'text-nimbus-subtle hover:bg-white/5'
             }`}
           >
             {name}
@@ -81,7 +79,7 @@ export function PhotosGallery() {
           </div>
         )}
         {error && (
-          <div className="flex h-full items-center justify-center text-sm text-red-600">
+          <div className="flex h-full items-center justify-center text-sm text-red-400">
             {(error as Error).message}
           </div>
         )}

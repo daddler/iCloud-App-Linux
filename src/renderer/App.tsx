@@ -1,14 +1,34 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { AppView, AuthStatus } from '@shared/ipc-types';
 import { Onboarding } from './routes/Onboarding/Onboarding';
 import { DriveExplorer } from './routes/DriveExplorer/DriveExplorer';
 import { PhotosGallery } from './routes/PhotosGallery/PhotosGallery';
 import { Settings } from './routes/Settings/Settings';
+import { Contacts } from './routes/Contacts/Contacts';
+import { Calendar } from './routes/Calendar/Calendar';
+import { Recents } from './routes/Recents/Recents';
 import { Spinner } from './components/Spinner';
+import { TitleBar, type BreadcrumbSegment } from './components/TitleBar';
+import { Sidebar } from './components/Sidebar';
+
+const VIEW_LABEL: Record<Exclude<AppView, 'drive'>, string> = {
+  onboarding: 'iCloud Explorer',
+  photos: 'Fotos',
+  settings: 'Einstellungen',
+  contacts: 'Kontakte',
+  calendar: 'Kalender',
+  recents: 'Zuletzt',
+};
 
 export default function App() {
   const [view, setView] = useState<AppView | 'loading'>('loading');
   const [authStatus, setAuthStatus] = useState<AuthStatus | null>(null);
+  const [search, setSearch] = useState('');
+
+  // Drive path history, for the titlebar's back/forward navigation.
+  const [driveHistory, setDriveHistory] = useState<string[]>(['/']);
+  const [driveHistoryIndex, setDriveHistoryIndex] = useState(0);
+  const drivePath = driveHistory[driveHistoryIndex];
 
   useEffect(() => {
     let cancelled = false;
@@ -25,68 +45,73 @@ export default function App() {
     };
   }, []);
 
+  function navigateView(next: AppView) {
+    setView(next);
+    setSearch('');
+  }
+
+  function navigateDrivePath(path: string) {
+    if (path === drivePath) return;
+    setDriveHistory((prev) => [...prev.slice(0, driveHistoryIndex + 1), path]);
+    setDriveHistoryIndex((i) => i + 1);
+    setView('drive');
+  }
+
+  const breadcrumb: BreadcrumbSegment[] = useMemo(() => {
+    if (view === 'drive') {
+      const segments = drivePath.split('/').filter(Boolean);
+      return [
+        { label: 'iCloud Drive', onClick: segments.length > 0 ? () => navigateDrivePath('/') : undefined },
+        ...segments.map((segment, index) => ({
+          label: segment,
+          onClick:
+            index < segments.length - 1
+              ? () => navigateDrivePath(`/${segments.slice(0, index + 1).join('/')}`)
+              : undefined,
+        })),
+      ];
+    }
+    if (view === 'loading' || view === 'onboarding') return [{ label: 'iCloud Explorer' }];
+    return [{ label: VIEW_LABEL[view] }];
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view, drivePath, driveHistoryIndex]);
+
   if (view === 'loading') {
     return (
-      <div className="flex h-full w-full items-center justify-center bg-neutral-50 dark:bg-neutral-900">
+      <div className="flex h-full w-full items-center justify-center bg-nimbus-bg">
         <Spinner />
       </div>
     );
   }
 
   if (view === 'onboarding') {
-    return <Onboarding onAuthenticated={() => setView('drive')} />;
+    return <Onboarding onAuthenticated={() => navigateView('drive')} />;
   }
 
   return (
-    <div className="flex h-full w-full bg-neutral-50 text-neutral-900 dark:bg-neutral-900 dark:text-neutral-100">
-      <nav className="flex w-16 flex-col items-center gap-2 border-r border-neutral-200 py-4 dark:border-neutral-800">
-        <NavButton label="Drive" active={view === 'drive'} onClick={() => setView('drive')} />
-        <NavButton label="Fotos" active={view === 'photos'} onClick={() => setView('photos')} />
-        <div className="flex-1" />
-        <NavButton
-          label="Einstellungen"
-          active={view === 'settings'}
-          onClick={() => setView('settings')}
-          content={authStatus?.userInitials}
-          rounded
-        />
-      </nav>
-      <main className="flex-1 overflow-hidden">
-        {view === 'drive' && <DriveExplorer />}
-        {view === 'photos' && <PhotosGallery />}
-        {view === 'settings' && <Settings onLoggedOut={() => setView('onboarding')} />}
-      </main>
+    <div className="flex h-screen w-full flex-col overflow-hidden bg-nimbus-bg text-nimbus-text">
+      <TitleBar
+        breadcrumb={breadcrumb}
+        canGoBack={view === 'drive' && driveHistoryIndex > 0}
+        canGoForward={view === 'drive' && driveHistoryIndex < driveHistory.length - 1}
+        onBack={() => setDriveHistoryIndex((i) => Math.max(0, i - 1))}
+        onForward={() => setDriveHistoryIndex((i) => Math.min(driveHistory.length - 1, i + 1))}
+        search={search}
+        onSearchChange={setSearch}
+        userInitials={authStatus?.userInitials}
+        onAvatarClick={() => navigateView('settings')}
+      />
+      <div className="grid min-h-0 flex-1 grid-cols-[250px_1fr]">
+        <Sidebar view={view} onNavigate={navigateView} authStatus={authStatus} />
+        <section className="flex min-h-0 min-w-0 flex-col">
+          {view === 'drive' && <DriveExplorer path={drivePath} onNavigate={navigateDrivePath} search={search} />}
+          {view === 'photos' && <PhotosGallery />}
+          {view === 'contacts' && <Contacts search={search} onOpenSettings={() => navigateView('settings')} />}
+          {view === 'calendar' && <Calendar search={search} onOpenSettings={() => navigateView('settings')} />}
+          {view === 'recents' && <Recents search={search} />}
+          {view === 'settings' && <Settings onLoggedOut={() => navigateView('onboarding')} />}
+        </section>
+      </div>
     </div>
-  );
-}
-
-function NavButton({
-  label,
-  active,
-  onClick,
-  content,
-  rounded,
-}: {
-  label: string;
-  active: boolean;
-  onClick: () => void;
-  content?: string;
-  rounded?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      title={label}
-      className={`flex h-10 w-10 items-center justify-center text-xs font-medium transition-colors ${
-        rounded ? 'rounded-full' : 'rounded-lg'
-      } ${
-        active
-          ? 'bg-blue-600 text-white'
-          : 'text-neutral-500 hover:bg-neutral-200 dark:text-neutral-400 dark:hover:bg-neutral-800'
-      }`}
-    >
-      {content ?? label.slice(0, 2)}
-    </button>
   );
 }

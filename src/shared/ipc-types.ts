@@ -17,7 +17,7 @@ export interface FileStat {
   modifiedAt: string;
 }
 
-export type AppView = 'onboarding' | 'drive' | 'photos' | 'settings';
+export type AppView = 'onboarding' | 'drive' | 'photos' | 'settings' | 'contacts' | 'calendar' | 'recents';
 
 export type AuthStage = 'idle' | 'awaiting-credentials' | 'awaiting-2fa' | 'authenticated' | 'error';
 
@@ -66,7 +66,50 @@ export interface AppPreferences {
   minimizeToTray: boolean;
 }
 
+/** A file (never a directory) discovered by a recursive recent-files scan. */
+export interface RecentEntry {
+  name: string;
+  path: string;
+  size: number;
+  modifiedAt: string;
+}
+
+export interface StorageUsage {
+  totalBytes: number;
+  documentsBytes: number;
+  mediaBytes: number;
+  otherBytes: number;
+}
+
+export interface Contact {
+  id: string;
+  fullName: string;
+  emails: string[];
+  phones: string[];
+}
+
+export interface CalendarEvent {
+  id: string;
+  summary: string;
+  start: string; // ISO 8601
+  end?: string; // ISO 8601
+  location?: string;
+}
+
 export interface IcloudBridge {
+  app: {
+    getVersion(): Promise<string>;
+    getPreferences(): Promise<AppPreferences>;
+    setAutostart(enabled: boolean): Promise<void>;
+    setMinimizeToTray(enabled: boolean): Promise<void>;
+  };
+  window: {
+    minimize(): Promise<void>;
+    toggleMaximize(): Promise<void>;
+    close(): Promise<void>;
+    isMaximized(): Promise<boolean>;
+    onMaximizeChange(cb: (isMaximized: boolean) => void): () => void;
+  };
   auth: {
     status(): Promise<AuthStatus>;
     startLogin(appleId: string, password: string): Promise<AuthStartResult>;
@@ -85,6 +128,8 @@ export interface IcloudBridge {
     remove(path: string, recursive: boolean): Promise<void>;
     openPath(path: string): Promise<string>; // returns '' on success, error string otherwise
     revealInFileManager(path: string): Promise<void>;
+    listRecent(limit: number): Promise<RecentEntry[]>;
+    storageUsage(): Promise<StorageUsage>;
   };
   transfer: {
     getPathForFile(file: File): string;
@@ -96,10 +141,21 @@ export interface IcloudBridge {
     listAlbum(album: string): Promise<PhotoAsset[]>;
     download(paths: string[], destDir?: string): Promise<StartTransferResult>;
   };
-  app: {
-    getPreferences(): Promise<AppPreferences>;
-    setAutostart(enabled: boolean): Promise<void>;
-    setMinimizeToTray(enabled: boolean): Promise<void>;
+  /**
+   * Apple requires a single app-specific password (distinct from the main Apple ID
+   * password used for rclone) for any CardDAV/CalDAV client; Contacts and Calendar
+   * share this one credential rather than each managing their own.
+   */
+  davAuth: {
+    hasCredentials(): Promise<boolean>;
+    setCredentials(appleId: string, appSpecificPassword: string): Promise<void>;
+    clearCredentials(): Promise<void>;
+  };
+  contacts: {
+    list(): Promise<Contact[]>;
+  };
+  calendar: {
+    listUpcoming(): Promise<CalendarEvent[]>;
   };
 }
 
