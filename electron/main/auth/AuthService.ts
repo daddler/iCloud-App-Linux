@@ -9,16 +9,20 @@ const REMOTE_NAME = 'icloud';
  * (the same mechanism `rclone config create` uses interactively, but driven
  * programmatically with `nonInteractive: true` + a returned `State` token).
  *
- * IMPORTANT (see plan docs, "Risiken/offene Punkte"): the exact shape of the
- * continuation response for the `iclouddrive` backend's 2FA step is the
- * single highest-uncertainty integration point in this project and MUST be
- * verified against the pinned rclone version (resources/rclone/checksums.json)
- * with a real Apple ID before relying on this in production. The field names
- * below (`State`, `Result`, `Option`) match rclone's general config-continuation
- * protocol as of v1.6x; adjust here if the bundled version differs.
+ * Verified end-to-end against a real Apple ID on the pinned rclone version
+ * (resources/rclone/checksums.json): each continuation round-trip must resend
+ * the original `parameters` (apple_id/password) alongside `state`/`result` -
+ * rclone's rc layer does not remember earlier answers itself, so omitting
+ * them on the 2FA step fails with "an Apple ID is required".
  */
 export class AuthService {
   private pendingState: string | null = null;
+  // rclone's rc config-continuation protocol does not remember earlier
+  // answers across --continue/state round-trips - the original parameters
+  // (apple_id, password) must be resent on every call or the backend fails
+  // with "an Apple ID is required" once it reaches the 2FA step.
+  private pendingParameters: Record<string, unknown> = {};
+  private pendingEndpoint: 'config/create' | 'config/update' = 'config/create';
 
   constructor(private readonly rc: RcClient) {}
 
@@ -36,20 +40,25 @@ export class AuthService {
   }
 
   async startLogin(appleId: string, password: string): Promise<AuthStartResult> {
+    const parameters = { apple_id: appleId, password };
     try {
       const result = await this.rc.call<{ State?: string; Error?: string }>('config/create', {
         name: REMOTE_NAME,
         type: 'iclouddrive',
-        parameters: { apple_id: appleId, password },
+        parameters,
         opt: { nonInteractive: true, noObscure: false },
       });
 
       if (result.State) {
         this.pendingState = result.State;
+        this.pendingParameters = parameters;
+        this.pendingEndpoint = 'config/create';
         return { stage: 'awaiting-2fa', message: 'Enter the verification code sent to your trusted device.' };
       }
+      this.pendingParameters = {};
       return { stage: 'authenticated' };
     } catch (err) {
+      this.pendingParameters = {};
       return { stage: 'error', message: (err as Error).message };
     }
   }
@@ -59,10 +68,12 @@ export class AuthService {
       return { stage: 'error', message: 'No pending 2FA challenge. Please start login again.' };
     }
     try {
-      const result = await this.rc.call<{ State?: string; Error?: string }>('config/create', {
+      const result = await this.rc.call<{ State?: string; Error?: string }>(this.pendingEndpoint, {
         name: REMOTE_NAME,
         type: 'iclouddrive',
-        parameters: {},
+        // The original apple_id/password must be resent on every continuation
+        // round-trip - rclone's rc config state does not persist them itself.
+        parameters: this.pendingParameters,
         opt: { nonInteractive: true, state: this.pendingState, result: code },
       });
 
@@ -76,6 +87,7 @@ export class AuthService {
       }
 
       this.pendingState = null;
+      this.pendingParameters = {};
       return { stage: 'authenticated' };
     } catch (err) {
       return { stage: 'error', message: (err as Error).message };
@@ -83,18 +95,23 @@ export class AuthService {
   }
 
   async reauthenticate(password: string): Promise<AuthStartResult> {
+    const parameters = { password };
     try {
       const result = await this.rc.call<{ State?: string; Error?: string }>('config/update', {
         name: REMOTE_NAME,
-        parameters: { password },
+        parameters,
         opt: { nonInteractive: true },
       });
       if (result.State) {
         this.pendingState = result.State;
+        this.pendingParameters = parameters;
+        this.pendingEndpoint = 'config/update';
         return { stage: 'awaiting-2fa' };
       }
+      this.pendingParameters = {};
       return { stage: 'authenticated' };
     } catch (err) {
+      this.pendingParameters = {};
       return { stage: 'error', message: (err as Error).message };
     }
   }
@@ -104,6 +121,7 @@ export class AuthService {
       await this.rc.call('config/delete', { name: REMOTE_NAME });
     } finally {
       this.pendingState = null;
+      this.pendingParameters = {};
     }
   }
 }
