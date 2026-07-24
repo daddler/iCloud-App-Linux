@@ -24,8 +24,8 @@ let mountManager: MountManager | null = null;
 // rather than the CJS-only __dirname.
 const mainDir = import.meta.dirname;
 
-async function createWindow(): Promise<void> {
-  mainWindow = new BrowserWindow({
+function createWindow(): BrowserWindow {
+  return new BrowserWindow({
     width: 1200,
     height: 800,
     webPreferences: {
@@ -35,11 +35,13 @@ async function createWindow(): Promise<void> {
       sandbox: true,
     },
   });
+}
 
+async function loadWindowContent(win: BrowserWindow): Promise<void> {
   if (isDev && process.env.ELECTRON_RENDERER_URL) {
-    await mainWindow.loadURL(process.env.ELECTRON_RENDERER_URL);
+    await win.loadURL(process.env.ELECTRON_RENDERER_URL);
   } else {
-    await mainWindow.loadFile(join(mainDir, '../renderer/index.html'));
+    await win.loadFile(join(mainDir, '../renderer/index.html'));
   }
 }
 
@@ -47,14 +49,18 @@ async function bootstrap(): Promise<void> {
   const appState = new AppState();
   appState.load();
 
-  await createWindow();
-  if (!mainWindow) throw new Error('Main window failed to initialize');
+  // Content is loaded only after IPC handlers are registered below, so the
+  // renderer can never race a handler call ahead of ipcMain.handle() (e.g.
+  // "No handler registered for 'auth:status'" if it queries auth state on
+  // mount before rclone has finished starting up).
+  mainWindow = createWindow();
   const win = mainWindow;
 
   if (MOCK_MODE) {
     console.log('[main] Running in E2E_MOCK_RCLONE mode: real rclone/auth/mount are skipped.');
     // In mock mode the renderer is expected to be driven by test fixtures;
     // IPC handlers are intentionally not registered here (see test/e2e).
+    await loadWindowContent(win);
     return;
   }
 
@@ -93,6 +99,8 @@ async function bootstrap(): Promise<void> {
     transferService,
     photosService,
   });
+
+  await loadWindowContent(win);
 }
 
 app.whenReady().then(bootstrap);
@@ -102,7 +110,7 @@ app.on('window-all-closed', () => {
 });
 
 app.on('activate', () => {
-  if (BrowserWindow.getAllWindows().length === 0) void createWindow();
+  if (BrowserWindow.getAllWindows().length === 0) void loadWindowContent(createWindow());
 });
 
 let quitting = false;
