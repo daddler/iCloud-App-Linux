@@ -1,7 +1,7 @@
 {
   "name": "icloud-explorer-linux",
   "productName": "iCloud Explorer",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Linux desktop app for browsing, editing and uploading files to iCloud Drive and iCloud Photos, packaged as an AppImage.",
   "private": true,
   "type": "module",

@@ -1,14 +1,14 @@
 {
-  "_comment": "Pinned rclone release used for the bundled binary. Artifact keys use Node's/electron-builder's arch naming (x64, arm64), not rclone's own uname-style release filenames — keep in sync with binaryResolver.ts and electron-builder.yml's ${arch} macro. Bumped from 1.69.0 to 1.74.4: v1.69.0 used the iclouddrive backend's plaintext /appleauth/auth/signin flow, which Apple has since blocked, making every login fail with HTTP 400 'Invalid Session Token' (rclone#8155, rclone#8587) regardless of correct credentials. rclone PR #9209/#9234 (merged into v1.74.0) replaced this with SRP authentication, matching what the iCloud web UI itself uses. sha256 values verified against the SHA256SUMS release asset at https://github.com/rclone/rclone/releases/download/v1.74.4/SHA256SUMS. Update deliberately, not automatically, and re-verify the 2FA continuation flow against any new version before bumping.",
-  "version": "1.74.4",
+  "_comment": "Pinned rclone release used for the bundled binary. Artifact keys use Node's/electron-builder's arch naming (x64, arm64), not rclone's own uname-style release filenames \u2014 keep in sync with binaryResolver.ts and electron-builder.yml's ${arch} macro. Bumped from 1.69.0 to 1.74.4: v1.69.0 used the iclouddrive backend's plaintext /appleauth/auth/signin flow, which Apple has since blocked, making every login fail with HTTP 400 'Invalid Session Token' (rclone#8155, rclone#8587) regardless of correct credentials. rclone PR #9209/#9234 (merged into v1.74.0) replaced this with SRP authentication, matching what the iCloud web UI itself uses. Bumped again from 1.74.4 to 1.75.1: since mid-2026 Apple's POST /verify/trusteddevice/securitycode and /verify/phone/securitycode return HTTP 409 even for a VALID code; 1.74.4 treated that as failure (\"validate2FACode failed: HTTP error 409\", and a follow-up 'sms' then failed with \"getAuthState: HTTP error 409\"). Fixed upstream in rclone commit 731f2a6c2 (rclone#9488), first released in v1.75.0. The rc config continuation protocol is unchanged between 1.74.4 and 1.75.1. sha256 values verified against https://github.com/rclone/rclone/releases/download/v1.75.1/SHA256SUMS. Update deliberately, not automatically, and re-verify the 2FA continuation flow against any new version before bumping.",
+  "version": "1.75.1",
   "artifacts": {
     "x64": {
-      "url": "https://downloads.rclone.org/v1.74.4/rclone-v1.74.4-linux-amd64.zip",
-      "sha256": "fe435e0c36228e7c2f116a8701f01127bb1f694005fc11d1f27186c8bca4115d"
+      "url": "https://downloads.rclone.org/v1.75.1/rclone-v1.75.1-linux-amd64.zip",
+      "sha256": "982b5aa772841168f8e380f139e9e787b2a105403e32b94da8676a0e1c0a13ab"
     },
     "arm64": {
-      "url": "https://downloads.rclone.org/v1.74.4/rclone-v1.74.4-linux-arm64.zip",
-      "sha256": "97685285c9ad6a0cf17d5844115d2a67245af6444db672187074bd9c358de419"
+      "url": "https://downloads.rclone.org/v1.75.1/rclone-v1.75.1-linux-arm64.zip",
+      "sha256": "03f2504174034b6d004152ed7369251c9a9ec1f7e0836eda420f5c7a5ec0dff9"
     }
   }
 }

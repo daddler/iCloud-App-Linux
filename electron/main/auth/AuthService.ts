@@ -81,6 +81,9 @@ export function friendlyAuthError(raw: string): string {
   if (/requestSMSCode|failed to send SMS code/i.test(head)) {
     return 'Apple konnte keinen SMS-Code senden. Bitte später erneut versuchen.' + (appleMessage ? ` (Apple: ${appleMessage})` : '');
   }
+  if (/failed to get trusted phone numbers|auth session state lost/i.test(head)) {
+    return 'Die Anmeldesitzung bei Apple ist nicht mehr gültig. Bitte gehe zurück und melde dich erneut an.';
+  }
   if (/incorrect username or password/i.test(head)) {
     return 'Apple-ID oder Passwort ist falsch.';
   }
@@ -94,7 +97,7 @@ export function friendlyAuthError(raw: string): string {
  * (the same mechanism `rclone config create` uses interactively, but driven
  * programmatically with `nonInteractive: true` + a returned `State` token).
  *
- * Verified against rclone v1.74.4's `backend/iclouddrive/icloud.go` Config():
+ * Verified against rclone v1.75.1's (same as v1.74.4) `backend/iclouddrive/icloud.go` Config():
  *  - state ""            -> SRP sign-in, pushes a code to trusted devices, returns State "2fa_do"
  *                           (or, for accounts without trusted devices, goes straight to the SMS flow)
  *  - state "2fa_do"      -> Result = 6-digit code, or "sms" to switch to an SMS code
