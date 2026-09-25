@@ -30,26 +30,85 @@ function computeInitials(appleId: string): string | undefined {
   return undefined;
 }
 
+/** Shape of rclone's `fs.ConfigOut` as returned by rc `config/create` / `config/update` with `nonInteractive`. */
+interface ConfigOut {
+  State?: string;
+  Error?: string;
+  Result?: string;
+  Option?: {
+    Name?: string;
+    Help?: string;
+    Examples?: { Value: string; Help?: string }[];
+  } | null;
+}
+
+const BODY_MARKER = 'returned body: ';
+
+/**
+ * rclone's REST layer formats non-2xx Apple responses as
+ * `HTTP error 400 (400 Bad Request) returned body: "<Go-%q-quoted JSON>"`,
+ * which is unreadable in the UI (it dumps Apple's whole auth-state JSON).
+ * Turn that into a short, user-facing German message.
+ */
+export function friendlyAuthError(raw: string): string {
+  const markerIdx = raw.indexOf(BODY_MARKER);
+  const head = markerIdx >= 0 ? raw.slice(0, markerIdx).trim() : raw.trim();
+  const status = /HTTP error (\d{3})/.exec(head)?.[1];
+
+  let appleMessage: string | undefined;
+  if (markerIdx >= 0) {
+    try {
+      // Go's %q output is (for this ASCII/UTF-8 JSON) a valid JSON string literal.
+      const bodyText = JSON.parse(raw.slice(markerIdx + BODY_MARKER.length).trim()) as string;
+      const body = JSON.parse(bodyText) as {
+        service_errors?: { message?: string }[];
+        serviceErrors?: { message?: string }[];
+      };
+      appleMessage = (body.service_errors ?? body.serviceErrors)?.[0]?.message;
+    } catch {
+      // Body isn't JSON - fall through to the generic messages below.
+    }
+  }
+
+  const isCodeValidation = /validate2FACode|validateSMSCode/i.test(head);
+  if (isCodeValidation && status && status.startsWith('4')) {
+    return (
+      'Apple hat den Bestätigungscode abgelehnt (falsch oder abgelaufen). ' +
+      'Gib den neuesten Code ein oder fordere einen Code per SMS an.' +
+      (appleMessage ? ` (Apple: ${appleMessage})` : '')
+    );
+  }
+  if (/requestSMSCode|failed to send SMS code/i.test(head)) {
+    return 'Apple konnte keinen SMS-Code senden. Bitte später erneut versuchen.' + (appleMessage ? ` (Apple: ${appleMessage})` : '');
+  }
+  if (/incorrect username or password/i.test(head)) {
+    return 'Apple-ID oder Passwort ist falsch.';
+  }
+  if (appleMessage) return `${head.replace(/:\s*$/, '')}: ${appleMessage}`;
+  return head || raw;
+}
+
 /**
  * Drives Apple ID + 2FA authentication for the `icloud` rclone remote via
  * rclone's rc `config/create` / `config/update` "continuation" protocol
  * (the same mechanism `rclone config create` uses interactively, but driven
  * programmatically with `nonInteractive: true` + a returned `State` token).
  *
- * Verified end-to-end against a real Apple ID on the pinned rclone version
- * (resources/rclone/checksums.json): each continuation round-trip must resend
- * the original `parameters` (apple_id/password) alongside `state`/`result` -
- * rclone's rc layer does not remember earlier answers itself, so omitting
- * them on the 2FA step fails with "an Apple ID is required".
+ * Verified against rclone v1.74.4's `backend/iclouddrive/icloud.go` Config():
+ *  - state ""            -> SRP sign-in, pushes a code to trusted devices, returns State "2fa_do"
+ *                           (or, for accounts without trusted devices, goes straight to the SMS flow)
+ *  - state "2fa_do"      -> Result = 6-digit code, or "sms" to switch to an SMS code
+ *  - state "2fa_sms_select" -> Result = "<phoneId>_<mode>" picked from Option.Examples
+ *  - state "2fa_sms_<id>_<mode>" -> Result = SMS code
+ * Every continuation call MUST pass `continue: true`: without it rc's
+ * config/create deletes the whole remote section first (fs/config CreateRemote),
+ * wiping apple_id/password and the saved SRP session the 2FA step depends on.
  */
 export class AuthService {
   private pendingState: string | null = null;
-  // rclone's rc config-continuation protocol does not remember earlier
-  // answers across --continue/state round-trips - the original parameters
-  // (apple_id, password) must be resent on every call or the backend fails
-  // with "an Apple ID is required" once it reaches the 2FA step.
+  // Resent on every continuation round-trip (verified against a real Apple ID
+  // on the pinned rclone, see git history) - harmless with `continue: true`.
   private pendingParameters: Record<string, unknown> = {};
-  private pendingEndpoint: 'config/create' | 'config/update' = 'config/create';
 
   constructor(private readonly rc: RcClient) {}
 
@@ -73,84 +132,55 @@ export class AuthService {
   }
 
   async startLogin(appleId: string, password: string): Promise<AuthStartResult> {
-    const parameters = { apple_id: appleId, password };
+    this.pendingState = null;
+    this.pendingParameters = { apple_id: appleId, password };
     try {
-      const result = await this.rc.call<{ State?: string; Error?: string }>('config/create', {
+      const out = await this.rc.call<ConfigOut>('config/create', {
         name: REMOTE_NAME,
         type: 'iclouddrive',
-        parameters,
-        opt: { nonInteractive: true, noObscure: false },
+        parameters: this.pendingParameters,
+        opt: { nonInteractive: true, obscure: true },
       });
-
-      if (result.State) {
-        this.pendingState = result.State;
-        this.pendingParameters = parameters;
-        this.pendingEndpoint = 'config/create';
-        return { stage: 'awaiting-2fa', message: 'Enter the verification code sent to your trusted device.' };
-      }
-      this.pendingParameters = {};
-      return { stage: 'authenticated' };
+      return await this.handleConfigOut(out, null);
     } catch (err) {
-      this.pendingParameters = {};
-      return { stage: 'error', message: (err as Error).message };
+      return { stage: 'error', message: friendlyAuthError((err as Error).message) };
     }
   }
 
+  /** `code` is the 6-digit verification code, or the literal "sms" to request a code via text message. */
   async submitTwoFactorCode(code: string): Promise<AuthStartResult> {
     if (!this.pendingState) {
-      return { stage: 'error', message: 'No pending 2FA challenge. Please start login again.' };
+      return { stage: 'error', message: 'Keine offene 2FA-Anfrage. Bitte melde dich erneut an.' };
     }
+    const state = this.pendingState;
     try {
-      const result = await this.rc.call<{ State?: string; Error?: string }>(this.pendingEndpoint, {
-        name: REMOTE_NAME,
-        type: 'iclouddrive',
-        // The original apple_id/password must be resent on every continuation
-        // round-trip - rclone's rc config state does not persist them itself.
-        parameters: this.pendingParameters,
-        // `continue: true` is required here, distinct from state/result: without
-        // it, rclone's config/create handler treats this as a brand new create
-        // and deletes the remote's in-progress config section (including the
-        // backend's saved 2FA session) before ever looking at `state`, failing
-        // with "auth session state lost, please reconfigure".
-        opt: { nonInteractive: true, continue: true, state: this.pendingState, result: code },
-      });
-
-      if (result.Error) {
-        return { stage: 'awaiting-2fa', message: result.Error };
-      }
-      if (result.State) {
-        // Some flows need a second round (e.g. SMS vs. device confirmation).
-        this.pendingState = result.State;
-        return { stage: 'awaiting-2fa', message: 'Additional verification step required.' };
-      }
-
-      this.pendingState = null;
-      this.pendingParameters = {};
-      return { stage: 'authenticated' };
+      const out = await this.continueConfig(state, code.trim());
+      return await this.handleConfigOut(out, state);
     } catch (err) {
-      return { stage: 'error', message: (err as Error).message };
+      const message = friendlyAuthError((err as Error).message);
+      // The "2fa_do" step keeps rclone's saved SRP session on failure, so the
+      // same state can be retried with a corrected code. The SMS validation
+      // step clears it, so the whole login has to be restarted.
+      if (state === '2fa_do') {
+        return { stage: 'awaiting-2fa', message };
+      }
+      this.pendingState = null;
+      return { stage: 'error', message: `${message} Bitte melde dich erneut an.` };
     }
   }
 
   async reauthenticate(password: string): Promise<AuthStartResult> {
-    const parameters = { password };
+    this.pendingState = null;
+    this.pendingParameters = { password };
     try {
-      const result = await this.rc.call<{ State?: string; Error?: string }>('config/update', {
+      const out = await this.rc.call<ConfigOut>('config/update', {
         name: REMOTE_NAME,
-        parameters,
-        opt: { nonInteractive: true },
+        parameters: this.pendingParameters,
+        opt: { nonInteractive: true, obscure: true },
       });
-      if (result.State) {
-        this.pendingState = result.State;
-        this.pendingParameters = parameters;
-        this.pendingEndpoint = 'config/update';
-        return { stage: 'awaiting-2fa' };
-      }
-      this.pendingParameters = {};
-      return { stage: 'authenticated' };
+      return await this.handleConfigOut(out, null);
     } catch (err) {
-      this.pendingParameters = {};
-      return { stage: 'error', message: (err as Error).message };
+      return { stage: 'error', message: friendlyAuthError((err as Error).message) };
     }
   }
 
@@ -161,5 +191,53 @@ export class AuthService {
       this.pendingState = null;
       this.pendingParameters = {};
     }
+  }
+
+  private continueConfig(state: string, result: string): Promise<ConfigOut> {
+    return this.rc.call<ConfigOut>('config/update', {
+      name: REMOTE_NAME,
+      parameters: this.pendingParameters,
+      opt: { nonInteractive: true, obscure: true, continue: true, state, result },
+    });
+  }
+
+  private async handleConfigOut(out: ConfigOut, previousState: string | null): Promise<AuthStartResult> {
+    if (out.Error) {
+      // fs.ConfigError returns a bogus follow-up state ("authenticate") the
+      // iclouddrive backend doesn't handle, so stay on the state we were in.
+      this.pendingState = previousState;
+      return previousState
+        ? { stage: 'awaiting-2fa', message: friendlyAuthError(out.Error) }
+        : { stage: 'error', message: friendlyAuthError(out.Error) };
+    }
+
+    if (!out.State) {
+      this.pendingState = null;
+      this.pendingParameters = {};
+      return { stage: 'authenticated' };
+    }
+
+    this.pendingState = out.State;
+
+    if (out.State === '2fa_sms_select') {
+      // Several trusted phone numbers - pick the first one; the UI only has a code field.
+      const first = out.Option?.Examples?.[0]?.Value;
+      if (!first) {
+        this.pendingState = null;
+        return { stage: 'error', message: 'Apple hat keine vertrauenswürdige Telefonnummer geliefert.' };
+      }
+      const next = await this.continueConfig(out.State, first);
+      return this.handleConfigOut(next, out.State);
+    }
+
+    if (out.State.startsWith('2fa_sms_')) {
+      const target = /sent to (.+)$/.exec(out.Option?.Help ?? '')?.[1];
+      return {
+        stage: 'awaiting-2fa',
+        message: target ? `Apple hat einen Code per SMS an ${target} gesendet.` : 'Apple hat einen Code per SMS gesendet.',
+      };
+    }
+
+    return { stage: 'awaiting-2fa' };
   }
 }

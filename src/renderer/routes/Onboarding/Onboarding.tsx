@@ -9,6 +9,7 @@ export function Onboarding({ onAuthenticated }: { onAuthenticated: () => void })
   const [password, setPassword] = useState('');
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   async function submitCredentials(e: FormEvent) {
@@ -18,6 +19,8 @@ export function Onboarding({ onAuthenticated }: { onAuthenticated: () => void })
     try {
       const result = await window.icloud.auth.startLogin(appleId, password);
       if (result.stage === 'awaiting-2fa') {
+        setInfo(result.message ?? null);
+        setCode('');
         setStep('twofactor');
       } else if (result.stage === 'authenticated') {
         onAuthenticated();
@@ -31,17 +34,20 @@ export function Onboarding({ onAuthenticated }: { onAuthenticated: () => void })
     }
   }
 
-  async function submitCode(e: FormEvent) {
-    e.preventDefault();
+  async function sendTwoFactor(value: string, isSmsRequest: boolean) {
     setBusy(true);
     setError(null);
     try {
-      const result = await window.icloud.auth.submitTwoFactorCode(code);
+      const result = await window.icloud.auth.submitTwoFactorCode(value);
       if (result.stage === 'authenticated') {
         onAuthenticated();
       } else if (result.stage === 'awaiting-2fa') {
-        setError(result.message ?? 'Bitte erneut versuchen.');
         setCode('');
+        if (isSmsRequest && result.message) {
+          setInfo(result.message);
+        } else {
+          setError(result.message ?? 'Bitte erneut versuchen.');
+        }
       } else {
         setError(result.message ?? 'Verifizierung fehlgeschlagen.');
       }
@@ -50,6 +56,18 @@ export function Onboarding({ onAuthenticated }: { onAuthenticated: () => void })
     } finally {
       setBusy(false);
     }
+  }
+
+  function submitCode(e: FormEvent) {
+    e.preventDefault();
+    void sendTwoFactor(code, false);
+  }
+
+  function backToCredentials() {
+    setError(null);
+    setInfo(null);
+    setCode('');
+    setStep('credentials');
   }
 
   return (
@@ -113,7 +131,7 @@ export function Onboarding({ onAuthenticated }: { onAuthenticated: () => void })
               onChange={(e) => setPassword(e.target.value)}
               className="mb-4 w-full rounded-lg border border-nimbus-border bg-black/25 px-3 py-2 text-sm text-nimbus-text outline-none"
             />
-            {error && <p className="mb-3 text-sm text-red-400">{error}</p>}
+            {error && <p className="mb-3 break-words text-sm text-red-400">{error}</p>}
             <button
               type="submit"
               disabled={busy}
@@ -129,7 +147,7 @@ export function Onboarding({ onAuthenticated }: { onAuthenticated: () => void })
           <form onSubmit={submitCode}>
             <h1 className="mb-2 text-lg font-bold text-nimbus-heading">Bestätigungscode</h1>
             <p className="mb-4 text-sm text-nimbus-subtle">
-              Apple hat einen Code an eines deiner vertrauenswürdigen Geräte gesendet. Gib ihn unten ein.
+              {info ?? 'Apple hat einen Code an eines deiner vertrauenswürdigen Geräte gesendet. Gib ihn unten ein.'}
             </p>
             <input
               type="text"
@@ -142,7 +160,7 @@ export function Onboarding({ onAuthenticated }: { onAuthenticated: () => void })
               className="mb-4 w-full rounded-lg border border-nimbus-border bg-black/25 px-3 py-2 text-center font-mono text-lg tracking-widest text-nimbus-text outline-none"
               autoFocus
             />
-            {error && <p className="mb-3 text-sm text-red-400">{error}</p>}
+            {error && <p className="mb-3 break-words text-sm text-red-400">{error}</p>}
             <button
               type="submit"
               disabled={busy || code.length !== 6}
@@ -151,6 +169,24 @@ export function Onboarding({ onAuthenticated }: { onAuthenticated: () => void })
               {busy && <Spinner size={16} />}
               Bestätigen
             </button>
+            <div className="mt-4 flex justify-between text-sm">
+              <button
+                type="button"
+                disabled={busy}
+                onClick={backToCredentials}
+                className="text-nimbus-subtle hover:underline disabled:opacity-60"
+              >
+                Zurück
+              </button>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => void sendTwoFactor('sms', true)}
+                className="text-nimbus-purple hover:underline disabled:opacity-60"
+              >
+                Code per SMS senden
+              </button>
+            </div>
           </form>
         )}
 
